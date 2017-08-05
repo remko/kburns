@@ -109,9 +109,10 @@ filter_chains = [
 filter_chains += slides.each_with_index.map do |slide, i|
   filters = ["format=pix_fmts=yuva420p"]
 
+  ratio = slide[:width].to_f/slide[:height].to_f
+
   # Pad filter
-  if slide[:scale] == :pad
-    ratio = slide[:width].to_f/slide[:height].to_f
+  if slide[:scale] == :pad or slide[:scale] == :crop_pan
     width, height = ratio > output_ratio ?
       [slide[:width], (slide[:width]/output_ratio).to_i]
     :
@@ -120,67 +121,92 @@ filter_chains += slides.each_with_index.map do |slide, i|
   end
 
   # Zoom/pan filter
-  x = case slide[:direction_x]
-    when :left
-      "0"
-    when :center
-      "iw/2-(iw/zoom/2)"
-    when :right
-      "iw-iw/zoom"
-  end
-  y = case slide[:direction_y]
-    when :top
-      "0"
-    when :center
-      "ih/2-(ih/zoom/2)"
-    when :bottom
-      "ih-ih/zoom"
-  end
   z_step = options.zoom_rate.to_f/(options.fps*options.slide_duration_s)
+  z_rate = options.zoom_rate.to_f
+  z_initial = 1
+  if slide[:scale] == :crop_pan
+    z_initial = ratio/output_ratio
+    z_step = z_step*ratio/output_ratio
+    z_rate = z_rate*ratio/output_ratio
+    if ratio > output_ratio
+      if (slide[:direction_x] == :left && slide[:direction_z] != :out) || (slide[:direction_x] == :right && slide[:direction_z] == :out)
+        x = "(1-on/(#{options.fps}*#{options.slide_duration_s}))*(iw-iw/zoom)"
+      elsif (slide[:direction_x] == :right && slide[:direction_z] != :out) || (slide[:direction_x] == :left && slide[:direction_z] == :out)
+        x = "(on/(#{options.fps}*#{options.slide_duration_s}))*(iw-iw/zoom)"
+      else
+        x = "(iw-ow)/2"
+      end
+      y_offset = "(ih-iw/#{ratio})/2"
+      y = case slide[:direction_y]
+        when :top
+          y_offset
+        when :center
+          "#{y_offset}+iw/#{ratio}/2-iw/#{output_ratio}/zoom/2"
+        when :bottom
+          "#{y_offset}+iw/#{ratio}-iw/#{output_ratio}/zoom"
+      end
+    else
+      z_initial = output_ratio/ratio
+      z_step = z_step*output_ratio/ratio
+      z_rate = z_rate*output_ratio/ratio
+      x_offset = "(iw-#{ratio}*ih)/2"
+      x = case slide[:direction_x]
+        when :left
+          x_offset
+        when :center
+          "#{x_offset}+ih*#{ratio}/2-ih*#{output_ratio}/zoom/2"
+        when :right
+          "#{x_offset}+ih*#{ratio}-ih*#{output_ratio}/zoom"
+      end
+      if (slide[:direction_y] == :top && slide[:direction_z] != :out) || (slide[:direction_y] == :bottom && slide[:direction_z] == :out)
+        y = "(1-on/(#{options.fps}*#{options.slide_duration_s}))*(ih-ih/zoom)"
+      elsif (slide[:direction_y] == :bottom && slide[:direction_z] != :out) || (slide[:direction_y] == :top && slide[:direction_z] == :out)
+        y = "(on/(#{options.fps}*#{options.slide_duration_s}))*(ih-ih/zoom)"
+      else
+        y = "(ih-oh)/2"
+      end
+    end
+  else
+    x = case slide[:direction_x]
+      when :left
+        "0"
+      when :center
+        "iw/2-(iw/zoom/2)"
+      when :right
+        "iw-iw/zoom"
+    end
+    y = case slide[:direction_y]
+      when :top
+        "0"
+      when :center
+        "ih/2-(ih/zoom/2)"
+      when :bottom
+        "ih-ih/zoom"
+    end
+  end
   z = case slide[:direction_z]
     when :in
-      "zoom+#{z_step}"
+      "if(eq(on,1),#{z_initial},zoom+#{z_step})"
     when :out
-      "if(eq(on,1),#{1+options.zoom_rate},zoom-#{z_step})"
+      "if(eq(on,1),#{z_initial+z_rate},zoom-#{z_step})"
   end
   width, height = case slide[:scale]
-    when :crop_pan, :crop_center
-      ratio = slide[:width].to_f/slide[:height].to_f
+    when :crop_center
       if output_ratio > ratio
         [options.output_width, (options.output_width/ratio).to_i]
       else
         [(options.output_height*ratio).to_i, options.output_height]
       end
-    when :pad
+    when :crop_pan, :pad
       [options.output_width, options.output_height]
     end
 
   filters << "zoompan=z='#{z}':x='#{x}':y='#{y}':fps=#{options.fps}:d=#{options.fps}*#{options.slide_duration_s}:s=#{width}x#{height}"
 
   # Crop filter
-  if [:crop_pan, :crop_center].include?(slide[:scale])
-    case slide[:scale] 
-    when :crop_pan
-      crop_x = case slide[:direction_x]
-        when :left
-          "(1-n/(#{options.fps}*#{options.slide_duration_s}))*(iw-ow)"
-        when :center
-          "(iw-ow)/2"
-        when :right
-          "(n/(#{options.fps}*#{options.slide_duration_s}))*(iw-ow)"
-      end
-      crop_y = case slide[:direction_y]
-        when :top
-          "(1-n/(#{options.fps}*#{options.slide_duration_s}))*(ih-oh)"
-        when :center
-          "(ih-oh)/2"
-        when :bottom
-          "(n/(#{options.fps}*#{options.slide_duration_s}))*(ih-oh)"
-      end
-    when :crop_center
-      crop_x = "(iw-ow)/2"
-      crop_y = "(ih-oh)/2"
-    end
+  if slide[:scale] == :crop_center
+    crop_x = "(iw-ow)/2"
+    crop_y = "(ih-oh)/2"
     filters << "crop=w=#{options.output_width}:h=#{options.output_height}:x='#{crop_x}':y='#{crop_y}'"
   end
 
