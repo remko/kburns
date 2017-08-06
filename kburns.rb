@@ -47,7 +47,7 @@ OptionParser.new do |opts|
   opts.on("--zoom-rate=[RATE]", Float, "Zoom rate (default: #{options.zoom_rate})") do |n|
     options.zoom_rate = n
   end
-  opts.on("--scale-mode=[SCALE_MODE]", [:pad, :crop_pan, :crop_center], "Scale mode (pad, crop_center, crop_pan) (default: #{options.scale_mode})") do |n|
+  opts.on("--scale-mode=[SCALE_MODE]", [:pad, :pan, :crop_center], "Scale mode (pad, crop_center, pan) (default: #{options.scale_mode})") do |n|
     options.scale_mode = n
   end
   opts.on("--dump-filter-graph", "Dump filter graph to '<OUTPUT>.filtergraph.png' for debugging") do |b|
@@ -115,7 +115,7 @@ filter_chains += slides.each_with_index.map do |slide, i|
   filters << "crop=w=2*floor(iw/2):h=2*floor(ih/2)"
 
   # Pad filter
-  if slide[:scale] == :pad or slide[:scale] == :crop_pan
+  if slide[:scale] == :pad or slide[:scale] == :pan
     width, height = ratio > output_ratio ?
       [slide[:width], (slide[:width]/output_ratio).to_i]
     :
@@ -127,7 +127,7 @@ filter_chains += slides.each_with_index.map do |slide, i|
   z_step = options.zoom_rate.to_f/(options.fps*options.slide_duration_s)
   z_rate = options.zoom_rate.to_f
   z_initial = 1
-  if slide[:scale] == :crop_pan
+  if slide[:scale] == :pan
     z_initial = ratio/output_ratio
     z_step = z_step*ratio/output_ratio
     z_rate = z_rate*ratio/output_ratio
@@ -200,7 +200,7 @@ filter_chains += slides.each_with_index.map do |slide, i|
       else
         [(options.output_height*ratio).to_i, options.output_height]
       end
-    when :crop_pan, :pad
+    when :pan, :pad
       [options.output_width, options.output_height]
     end
 
