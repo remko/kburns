@@ -111,6 +111,9 @@ filter_chains += slides.each_with_index.map do |slide, i|
 
   ratio = slide[:width].to_f/slide[:height].to_f
 
+  # Crop to make video divisible
+  filters << "crop=w=2*floor(iw/2):h=2*floor(ih/2)"
+
   # Pad filter
   if slide[:scale] == :pad or slide[:scale] == :crop_pan
     width, height = ratio > output_ratio ?
