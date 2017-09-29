@@ -21,6 +21,7 @@ options.zoom_direction = "random"
 options.scale_mode = :auto
 options.dump_filter_graph = false
 options.loopable = false
+options.audio = nil
 OptionParser.new do |opts|
   opts.banner = "Usage: #{$PROGRAM_NAME} [options] input1 [input2...] output"
   opts.on("-h", "--help", "Prints this help") do
@@ -55,6 +56,9 @@ OptionParser.new do |opts|
   end
   opts.on("--loopable", "Create loopable video") do |b|
     options.loopable = true
+  end
+  opts.on("--audio=[FILE]", "Use FILE as audio track") do |f|
+    options.audio = f
   end
 end.parse!
 
@@ -258,12 +262,16 @@ end
 cmd = [
   "ffmpeg", "-hide_banner", "-y", 
   *slides.map { |s| ["-i", s[:file]] }.flatten,
+  *options.audio ? ["-i", options.audio] : [],
   "-filter_complex", filter_chains.join(";"),
   *(options.loopable ? [
     "-ss", options.fade_duration_s.to_s,
     "-t", ((options.slide_duration_s-options.fade_duration_s)*(slides.count-1)).to_s
-  ] : []),
+  ] : [
+    "-t", ((options.slide_duration_s-options.fade_duration_s)*slides.count+options.fade_duration_s).to_s
+  ]),
   "-map", "[out]", 
+  *(options.audio ? ["-map", "#{slides.count}:a"] : []),
   "-c:v", "libx264", output_file
 ]
 puts cmd.join(" ")
