@@ -4,15 +4,15 @@ all:
 
 .PHONY: tests
 tests:
-	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=top-left-in --slide-duration=2 --fade-duration=0 --scale-mode=crop_pan ./tests/12x10.jpg ./tests/test--12x10--25fps--tli--crop_pan.mp4
-	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=top-left-out --slide-duration=2 --fade-duration=0 --scale-mode=crop_pan ./tests/12x10.jpg ./tests/test--12x10--25fps--tlo--crop_pan.mp4
-	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=bottom-right-in --slide-duration=2 --fade-duration=0 --scale-mode=crop_pan ./tests/12x10.jpg ./tests/test--12x10--25fps--bri--crop_pan.mp4
-	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=bottom-right-out --slide-duration=2 --fade-duration=0 --scale-mode=crop_pan ./tests/12x10.jpg ./tests/test--12x10--25fps--bro--crop_pan.mp4
+	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=top-left-in --slide-duration=2 --fade-duration=0 --scale-mode=pan ./tests/12x10.jpg ./tests/test--12x10--25fps--tli--pan.mp4
+	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=top-left-out --slide-duration=2 --fade-duration=0 --scale-mode=pan ./tests/12x10.jpg ./tests/test--12x10--25fps--tlo--pan.mp4
+	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=bottom-right-in --slide-duration=2 --fade-duration=0 --scale-mode=pan ./tests/12x10.jpg ./tests/test--12x10--25fps--bri--pan.mp4
+	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=bottom-right-out --slide-duration=2 --fade-duration=0 --scale-mode=pan ./tests/12x10.jpg ./tests/test--12x10--25fps--bro--pan.mp4
 
-	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=top-left-in --slide-duration=2 --fade-duration=0 --scale-mode=crop_pan ./tests/16x8.jpg ./tests/test--16x8--25fps--tli--crop_pan.mp4
-	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=top-left-out --slide-duration=2 --fade-duration=0 --scale-mode=crop_pan ./tests/16x8.jpg ./tests/test--16x8--25fps--tlo--crop_pan.mp4
-	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=bottom-right-in --slide-duration=2 --fade-duration=0 --scale-mode=crop_pan ./tests/16x8.jpg ./tests/test--16x8--25fps--bri--crop_pan.mp4
-	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=bottom-right-out --slide-duration=2 --fade-duration=0 --scale-mode=crop_pan ./tests/16x8.jpg ./tests/test--16x8--25fps--bro--crop_pan.mp4
+	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=top-left-in --slide-duration=2 --fade-duration=0 --scale-mode=pan ./tests/16x8.jpg ./tests/test--16x8--25fps--tli--pan.mp4
+	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=top-left-out --slide-duration=2 --fade-duration=0 --scale-mode=pan ./tests/16x8.jpg ./tests/test--16x8--25fps--tlo--pan.mp4
+	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=bottom-right-in --slide-duration=2 --fade-duration=0 --scale-mode=pan ./tests/16x8.jpg ./tests/test--16x8--25fps--bri--pan.mp4
+	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=bottom-right-out --slide-duration=2 --fade-duration=0 --scale-mode=pan ./tests/16x8.jpg ./tests/test--16x8--25fps--bro--pan.mp4
 	
 	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=top-left-in --slide-duration=2 --fade-duration=0 --scale-mode=crop_center ./tests/12x10c.jpg ./tests/test--12x10--25fps--tli--crop_center.mp4
 	$(KBURNS) --fps=25 --zoom-rate=0.25 --zoom-direction=bottom-right-in --slide-duration=2 --fade-duration=0 --scale-mode=crop_center ./tests/12x10c.jpg ./tests/test--12x10--25fps--bri--crop_center.mp4
