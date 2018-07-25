@@ -22,6 +22,7 @@ options.scale_mode = :auto
 options.dump_filter_graph = false
 options.loopable = false
 options.audio = nil
+options.codec = "libx264"
 OptionParser.new do |opts|
   opts.banner = "Usage: #{$PROGRAM_NAME} [options] input1 [input2...] output"
   opts.on("-h", "--help", "Prints this help") do
@@ -59,6 +60,9 @@ OptionParser.new do |opts|
   end
   opts.on("--audio=[FILE]", "Use FILE as audio track") do |f|
     options.audio = f
+  end
+  opts.on("--codec=[CODEC]", "Use a specific encoder") do |s|
+    options.codec = s
   end
 end.parse!
 
@@ -108,6 +112,12 @@ end
 filter_chains = [
   "color=c=black:r=#{options.fps}:size=#{options.output_width}x#{options.output_height}:d=#{(options.slide_duration_s-options.fade_duration_s)*slides.count+options.fade_duration_s}[black]"
 ]
+
+# workaround a float bug in zoompan filter that causes a jitter/shake
+# https://superuser.com/questions/1112617/ffmpeg-smooth-zoompan-with-no-jiggle/1112680#1112680
+# https://trac.ffmpeg.org/ticket/4298
+supersample_width = options.output_width*4
+supersample_height = options.output_height*4
 
 # Slide filterchains
 filter_chains += slides.each_with_index.map do |slide, i|
@@ -208,7 +218,7 @@ filter_chains += slides.each_with_index.map do |slide, i|
       [options.output_width, options.output_height]
     end
 
-  filters << "zoompan=z='#{z}':x='#{x}':y='#{y}':fps=#{options.fps}:d=#{options.fps}*#{options.slide_duration_s}:s=#{width}x#{height}"
+  filters << "scale=#{supersample_width}x#{supersample_height},zoompan=z='#{z}':x='#{x}':y='#{y}':fps=#{options.fps}:d=#{options.fps}*#{options.slide_duration_s}:s=#{width}x#{height}"
 
   # Crop filter
   if slide[:scale] == :crop_center
@@ -272,7 +282,7 @@ cmd = [
   ]),
   "-map", "[out]", 
   *(options.audio ? ["-map", "#{slides.count}:a"] : []),
-  "-c:v", "libx264", output_file
+  "-c:v", options.codec, output_file
 ]
 puts cmd.join(" ")
 system(*cmd)
