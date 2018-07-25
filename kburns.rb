@@ -5,6 +5,10 @@ require 'optparse'
 require 'ostruct'
 require 'open3'
 require 'tempfile'
+require 'net/http'
+require 'uri'
+require 'openssl'
+require 'json'
 
 ################################################################################
 # Parse options
@@ -22,8 +26,9 @@ options.scale_mode = :auto
 options.dump_filter_graph = false
 options.loopable = false
 options.audio = nil
+options.codec = "libx264"
 OptionParser.new do |opts|
-  opts.banner = "Usage: #{$PROGRAM_NAME} [options] input1 [input2...] output"
+  opts.banner = "Usage: #{$PROGRAM_NAME} [options] property_id output"
   opts.on("-h", "--help", "Prints this help") do
     puts opts
     exit
@@ -60,15 +65,94 @@ OptionParser.new do |opts|
   opts.on("--audio=[FILE]", "Use FILE as audio track") do |f|
     options.audio = f
   end
+  opts.on("--codec=[CODEC]", "Use a specific encoder") do |s|
+    options.codec = s
+  end
 end.parse!
 
 if ARGV.length < 2
   puts "Need at least 1 input file and output file"
   exit 1
 end
-input_files = ARGV[0..-2]
+
 output_file = ARGV[-1]
 
+################################################################################
+
+property_id = ARGV[-2]
+
+url = "https://mobile-adapter-api.domain.com.au/v1/property-details/#{property_id}"
+puts url
+uri = URI(url)
+response = Net::HTTP.get(uri)
+response_dict = JSON.parse(response) 
+media = response_dict['media']
+media_images = media.map{|media_item| media_item['image_url'] if media_item['type'] == "photo"}.compact
+
+class UrlResolver
+  def self.resolve(uri_str, agent = 'curl/7.43.0', max_attempts = 10, timeout = 10)
+    attempts = 0
+    cookie = nil
+
+    until attempts >= max_attempts
+      attempts += 1
+
+      url = URI.parse(uri_str)
+      http = Net::HTTP.new(url.host, url.port)
+      http.open_timeout = timeout
+      http.read_timeout = timeout
+      path = url.path
+      path = '/' if path == ''
+      path += '?' + url.query unless url.query.nil?
+
+      params = { 'User-Agent' => agent, 'Accept' => '*/*' }
+      params['Cookie'] = cookie unless cookie.nil?
+      request = Net::HTTP::Get.new(path, params)
+
+      if url.instance_of?(URI::HTTPS)
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      end
+      response = http.request(request)
+
+      case response
+        when Net::HTTPSuccess then
+          break
+        when Net::HTTPRedirection then
+          location = response['Location']
+          cookie = response['Set-Cookie']
+          new_uri = URI.parse(location)
+          uri_str = if new_uri.relative?
+                      url + location
+                    else
+                      new_uri.to_s
+                    end
+        else
+          raise 'Unexpected response: ' + response.inspect
+      end
+
+    end
+    raise 'Too many http redirects' if attempts == max_attempts
+
+    uri_str
+    # response.body
+  end
+end
+
+for i in 0..media_images.length-1 do
+  image_url = media_images[i]
+  # follow all the redirects
+  image_url = UrlResolver.resolve(image_url)
+  image_uri = URI(image_url)
+  # puts image_url
+  image_response = Net::HTTP.get(image_uri)
+  File.open("#{i}.jpg", "wb") do |file|
+    file.puts(image_response)
+  end
+end
+
+input_files = (0..media_images.length-1).map {|i| "#{i}.jpg" }
+puts input_files
 
 ################################################################################
 
@@ -108,6 +192,12 @@ end
 filter_chains = [
   "color=c=black:r=#{options.fps}:size=#{options.output_width}x#{options.output_height}:d=#{(options.slide_duration_s-options.fade_duration_s)*slides.count+options.fade_duration_s}[black]"
 ]
+
+# workaround a float bug in zoompan filter that causes a jitter/shake
+# https://superuser.com/questions/1112617/ffmpeg-smooth-zoompan-with-no-jiggle/1112680#1112680
+# https://trac.ffmpeg.org/ticket/4298
+supersample_width = options.output_width*4
+supersample_height = options.output_height*4
 
 # Slide filterchains
 filter_chains += slides.each_with_index.map do |slide, i|
@@ -208,7 +298,7 @@ filter_chains += slides.each_with_index.map do |slide, i|
       [options.output_width, options.output_height]
     end
 
-  filters << "zoompan=z='#{z}':x='#{x}':y='#{y}':fps=#{options.fps}:d=#{options.fps}*#{options.slide_duration_s}:s=#{width}x#{height}"
+  filters << "scale=#{supersample_width}x#{supersample_height},zoompan=z='#{z}':x='#{x}':y='#{y}':fps=#{options.fps}:d=#{options.fps}*#{options.slide_duration_s}:s=#{width}x#{height}"
 
   # Crop filter
   if slide[:scale] == :crop_center
@@ -272,7 +362,7 @@ cmd = [
   ]),
   "-map", "[out]", 
   *(options.audio ? ["-map", "#{slides.count}:a"] : []),
-  "-c:v", "libx264", output_file
+  "-c:v", options.codec, output_file
 ]
 puts cmd.join(" ")
 system(*cmd)
