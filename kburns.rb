@@ -28,7 +28,7 @@ options.loopable = false
 options.audio = nil
 options.codec = "libx264"
 OptionParser.new do |opts|
-  opts.banner = "Usage: #{$PROGRAM_NAME} [options] input1 [input2...] output"
+  opts.banner = "Usage: #{$PROGRAM_NAME} [options] property_id output"
   opts.on("-h", "--help", "Prints this help") do
     puts opts
     exit
