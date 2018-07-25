@@ -5,6 +5,10 @@ require 'optparse'
 require 'ostruct'
 require 'open3'
 require 'tempfile'
+require 'net/http'
+require 'uri'
+require 'openssl'
+require 'json'
 
 ################################################################################
 # Parse options
@@ -70,9 +74,85 @@ if ARGV.length < 2
   puts "Need at least 1 input file and output file"
   exit 1
 end
-input_files = ARGV[0..-2]
+
 output_file = ARGV[-1]
 
+################################################################################
+
+property_id = ARGV[-2]
+
+url = "https://mobile-adapter-api.domain.com.au/v1/property-details/#{property_id}"
+puts url
+uri = URI(url)
+response = Net::HTTP.get(uri)
+response_dict = JSON.parse(response) 
+media = response_dict['media']
+media_images = media.map{|media_item| media_item['image_url'] if media_item['type'] == "photo"}.compact
+
+class UrlResolver
+  def self.resolve(uri_str, agent = 'curl/7.43.0', max_attempts = 10, timeout = 10)
+    attempts = 0
+    cookie = nil
+
+    until attempts >= max_attempts
+      attempts += 1
+
+      url = URI.parse(uri_str)
+      http = Net::HTTP.new(url.host, url.port)
+      http.open_timeout = timeout
+      http.read_timeout = timeout
+      path = url.path
+      path = '/' if path == ''
+      path += '?' + url.query unless url.query.nil?
+
+      params = { 'User-Agent' => agent, 'Accept' => '*/*' }
+      params['Cookie'] = cookie unless cookie.nil?
+      request = Net::HTTP::Get.new(path, params)
+
+      if url.instance_of?(URI::HTTPS)
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      end
+      response = http.request(request)
+
+      case response
+        when Net::HTTPSuccess then
+          break
+        when Net::HTTPRedirection then
+          location = response['Location']
+          cookie = response['Set-Cookie']
+          new_uri = URI.parse(location)
+          uri_str = if new_uri.relative?
+                      url + location
+                    else
+                      new_uri.to_s
+                    end
+        else
+          raise 'Unexpected response: ' + response.inspect
+      end
+
+    end
+    raise 'Too many http redirects' if attempts == max_attempts
+
+    uri_str
+    # response.body
+  end
+end
+
+for i in 0..media_images.length-1 do
+  image_url = media_images[i]
+  # follow all the redirects
+  image_url = UrlResolver.resolve(image_url)
+  image_uri = URI(image_url)
+  # puts image_url
+  image_response = Net::HTTP.get(image_uri)
+  File.open("#{i}.jpg", "wb") do |file|
+    file.puts(image_response)
+  end
+end
+
+input_files = (0..media_images.length-1).map {|i| "#{i}.jpg" }
+puts input_files
 
 ################################################################################
 
