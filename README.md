@@ -21,7 +21,7 @@ still images, 7 short mp4 video clips and about 12 background music
 tracks.
 
 My first attempt crashed my computer when the `ffmpeg` started eating
-RAM and my OS reported 40 GB of memory used (between physical and swap).
+RAM and my OS reported 57 GB of memory used (between physical and swap).
 
 So back to the editor I had to break down the process into multiple
 `ffmpeg` executions and intermediate files before muxing it all back

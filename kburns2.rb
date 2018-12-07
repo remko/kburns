@@ -63,7 +63,7 @@ OptionParser.new do |opts|
   opts.on("--verbose", "Print information about the internal calculations") do
     $options.verbose = true
   end
-  opts.on("--delete_temp_files", "Delete temporary files on exit") do
+  opts.on("--delete-temp-files", "Delete temporary files on exit") do
     $options.delete_temp_files = true
   end
   opts.on("--subtitles=[FILE]", "Use FILE as subtitle track") do |f|
