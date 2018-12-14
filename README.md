@@ -40,7 +40,7 @@ become slides in the defined order. The audio files would become
 the background track, also in the defined order.
 
 ```
-kburns3.rb 001.JPG please.mp4 002.JPG 002b.mp4 004.JPG 005.JPG asfalto.mp3 "09 My way.mp3" out.mkv
+kburns2.rb 001.JPG please.mp4 002.JPG 002b.mp4 004.JPG 005.JPG asfalto.mp3 "09 My way.mp3" out.mkv
 ```
 
 You can also get some verbose information about the process with
@@ -64,5 +64,5 @@ file embedded in the resulting `mkv` file.
 Example:
 
 ```
-kburns3.rb --verbose --subtitles=subs.txt 001.JPG please.mp4 002.JPG 002b.mp4 004.JPG asfalto.mp3 out.mkv
+kburns2.rb --verbose --subtitles=subs.txt 001.JPG please.mp4 002.JPG 002b.mp4 004.JPG asfalto.mp3 out.mkv
 ```
