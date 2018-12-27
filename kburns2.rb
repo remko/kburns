@@ -8,6 +8,7 @@ require 'thread/pool'
 IMAGE_EXTENSIONS = ["jpg", "jpeg"]
 VIDEO_EXTENSIONS = ["mp4", "mpg", "avi"]
 AUDIO_EXTENSIONS = ["mp3", "ogg", "flac"]
+AUDIO_PLAYLIST_EXTENSIONS = ["m3u", "m3u8"]
 
 ################################################################################
 # Parse options
@@ -267,6 +268,15 @@ input_files.each do |file|
     background_tracks << {
         file: file
     }
+  elsif AUDIO_PLAYLIST_EXTENSIONS.include? file.downcase.rpartition(".").last
+    basedir = File.dirname(File.absolute_path(file))
+    IO.foreach(file) do |line|
+      unless line.start_with?("#")
+        background_tracks << {
+            file: File.absolute_path(line, basedir).strip
+        }
+      end
+    end
   else
     raise 'Unknown file type (by extension): ' + file
   end
