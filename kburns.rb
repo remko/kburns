@@ -60,6 +60,9 @@ OptionParser.new do |opts|
   opts.on("--audio=[FILE]", "Use FILE as audio track") do |f|
     options.audio = f
   end
+  opts.on("-y", "Overwrite output file without asking") do
+    options.y = true
+  end
 end.parse!
 
 if ARGV.length < 2
@@ -260,7 +263,7 @@ end
 
 # Run ffmpeg
 cmd = [
-  "ffmpeg", "-hide_banner", "-y", 
+  "ffmpeg", "-hide_banner", *options.y ? ["-y"] : [], 
   *slides.map { |s| ["-i", s[:file]] }.flatten,
   *options.audio ? ["-i", options.audio] : [],
   "-filter_complex", filter_chains.join(";"),
