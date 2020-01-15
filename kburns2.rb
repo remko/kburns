@@ -5,7 +5,7 @@ require 'optparse'
 require 'ostruct'
 require 'thread/pool'
 
-IMAGE_EXTENSIONS = ["jpg", "jpeg"]
+IMAGE_EXTENSIONS = ["jpg", "jpeg", "png"]
 VIDEO_EXTENSIONS = ["mp4", "mpg", "avi"]
 AUDIO_EXTENSIONS = ["mp3", "ogg", "flac"]
 AUDIO_PLAYLIST_EXTENSIONS = ["m3u", "m3u8"]
