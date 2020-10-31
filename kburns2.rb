@@ -119,6 +119,7 @@ def generate_reduced_slide(slides, prefix)
   end
 
   # Overlays
+  #noinspection DuplicatedCode
   filter_chains += slides.each_index.map do |i|
     input_1 = i > 0 ? "ov#{i-1}" : "black"
     input_2 = "v#{i}"
@@ -239,6 +240,7 @@ input_files.each do |file|
     current_offset_s = current_offset_s + duration.to_f - $options.fade_duration_s
     slides << {
         video: true,
+        hasaudio: true,
         file: file,
         duration_s: duration.to_f,
         offset_s: this_offset_s
@@ -289,10 +291,58 @@ if $options.verbose
   puts(background_tracks)
 end
 
-#
-# Generate subtitles (srt) file from subtitles descriptor (propietary) file
-#
-generate_srt_file(slides) if $options.subs_file
+if $options.subs_file
+  # add full-screen title slides
+  titles = []
+  IO.foreach($options.subs_file) do |line|
+    line_parts = line.partition(' ')
+    if line_parts[0][0] == 'T'
+      title_slide_index = line_parts[0][1..-1]
+      if titles[-1] && titles[-1][:index] == title_slide_index
+        titles[-1][:lines] << line_parts[2].strip
+      else
+        titles << {
+            index: title_slide_index,
+            lines: [line_parts[2].strip]
+        }
+      end
+    end
+  end
+  puts("TITLES:")
+  puts(titles)
+  titles.each do |title|
+    slide_file = "temp-kburns-T#{title[:index]}.mp4"
+    vflines = ["drawtext=fontfile=Inter-ExtraBold.otf:fontsize=150:fontcolor=white:x=(w-text_w)/2:y=(h-text_h-text_h)/2:text='#{title[:lines][0]}'"]
+    if title[:lines].length > 1
+      vflines << ["drawtext=fontfile=Inter-ExtraBold.otf:fontsize=150:fontcolor=white:x=(w-text_w)/2:y=(h+text_h)/2:text='#{title[:lines][1]}'"]
+    end
+
+    cmd = [
+        "ffmpeg", "-f", "lavfi",
+        "-i", "color=c=black:s=#{$options.output_width}x#{$options.output_height}:d=#{$options.slide_duration_s}",
+        "-vf", vflines.join(','), "-y", "-hide_banner", "-v", "quiet", slide_file
+    ]
+    system(*cmd)
+
+    slide_index = slides.index {|slide| slide[:file].rpartition('/')[2].start_with?(title[:index])}
+    slides.insert(slide_index, {
+        video: true,
+        hasaudio: false,
+        file: slide_file,
+        duration_s: $options.slide_duration_s,
+        offset_s: slides[slide_index][:offset_s]
+    })
+    slides.each_with_index { |slide,i| slide[:offset_s] += $options.slide_duration_s - $options.fade_duration_s if i > slide_index}
+  end
+
+  # Generate subtitles (srt) file from subtitles descriptor (propietary) file
+  generate_srt_file(slides)
+
+  if $options.verbose
+    puts("SLIDES:")
+    puts(slides)
+  end
+end
 
 total_duration = slides.inject(0) {|sum, slide| sum + slide[:duration_s] - $options.fade_duration_s }
 
@@ -490,6 +540,7 @@ filter_chains += slides.each_with_index.map do |slide, i|
 end
 
 # Overlays
+#noinspection DuplicatedCode
 filter_chains += slides.each_index.map do |i|
   input_1 = i > 0 ? "ov#{i-1}" : "black"
   input_2 = "v#{i}"
@@ -530,25 +581,23 @@ end
 #
 # Generate complete audio track, with audio from video slides and background music on image slides
 #
-video_slides = slides.select {|slide| slide[:video]}
+video_slides = slides.select {|slide| slide[:video] && slide[:hasaudio]}
 filter_chains = []
 
 # audio from video slides
 audio_tracks = []
-video_slides.each_with_index do |slide,i|
-  if slide[:video]
-    filters = []
+video_slides.each_with_index do |slide, i|
+  filters = []
 
-    # Fade filter
-    if $options.fade_duration_s > 0
-      filters << "afade=t=in:st=0:d=#{$options.fade_duration_s}"
-      filters << "afade=t=out:st=#{slide[:duration_s]-$options.fade_duration_s}:d=#{$options.fade_duration_s}"
-    end
-
-    filters << "adelay=#{(slide[:offset_s] * 1000).to_i}|#{(slide[:offset_s] * 1000).to_i}"
-    filter_chains << "[#{i}:a]" + filters.join(",") + "[a#{i}]"
-    audio_tracks << "[a#{i}]"
+  # Fade filter
+  if $options.fade_duration_s > 0
+    filters << "afade=t=in:st=0:d=#{$options.fade_duration_s}"
+    filters << "afade=t=out:st=#{slide[:duration_s] - $options.fade_duration_s}:d=#{$options.fade_duration_s}"
   end
+
+  filters << "adelay=#{(slide[:offset_s] * 1000).to_i}|#{(slide[:offset_s] * 1000).to_i}"
+  filter_chains << "[#{i}:a]" + filters.join(",") + "[a#{i}]"
+  audio_tracks << "[a#{i}]"
 end
 
 music_input_offset = video_slides.length
@@ -561,7 +610,7 @@ filter_chains << background_tracks.each_index.map {|i| "[#{i + music_input_offse
 background_sections = []
 section_start = slides[0][:video] ? nil : 0
 slides.each do |slide|
-  if slide[:video]
+  if slide[:hasaudio]
     unless section_start.nil?
       background_sections << { st: section_start, end: slide[:offset_s] }
       section_start = nil

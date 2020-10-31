@@ -14,6 +14,7 @@ music track. I had some more requirements.
 * Preserve audio from the video clips
 * Music background on still images slides
 * Simple subtitle generator
+* Full screen text slides
 
 So after a lot of iterations I got it working expanding on the ideas
 of the original project. Tried with a real example folder with 700
@@ -60,6 +61,10 @@ Like this:
 This will look for a slide which filename starts with `001` and show
 the text *Day 1* during that slide. It will be converted to a `srt`
 file embedded in the resulting `mkv` file.
+
+You can also prefix a filename with a T and the text will be put into 
+a full screen black slide just before the image itself. You can add
+up to two lines of text repeating the same prefix.
 
 Example:
 
