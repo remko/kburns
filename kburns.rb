@@ -19,6 +19,7 @@ options.fps = 60
 options.zoom_rate = 0.1
 options.zoom_direction = "random"
 options.scale_mode = :auto
+options.rescale = 10
 options.dump_filter_graph = false
 options.loopable = false
 options.audio = nil
