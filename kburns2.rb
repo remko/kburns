@@ -678,7 +678,7 @@ cmd = [
     "ffmpeg", "-hide_banner", "-y",
     "-i", final_video_file,
     "-i", final_audio_file,
-    *$options.subs_file ? ["-i", "temp-kburns-subs.srt"] : [],
+    *(File.empty?("temp-kburns-subs.srt") ? [] : ["-i", "temp-kburns-subs.srt"]),
     "-c", "copy", "-disposition:s:0", "default", output_file
 ]
 
