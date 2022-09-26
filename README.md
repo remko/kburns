@@ -3,6 +3,7 @@
 Script to generate a slideshow movie with the Ken Burns effect,
 using [FFmpeg](http://ffmpeg.org).
 
+
 Forked from [this project](https://github.com/remko/kburns) based on
 ideas explained on [this blog post](https://el-tramo.be/blog/ken-burns-ffmpeg/)
 from the same author.
@@ -71,3 +72,6 @@ Example:
 ```
 kburns2.rb --verbose --subtitles=subs.txt 001.JPG please.mp4 002.JPG 002b.mp4 004.JPG asfalto.mp3 out.mkv
 ```
+
+The logic used in the script is explained in detail in [this blog post](https://el-tramo.be/blog/ken-burns-ffmpeg/). 
+

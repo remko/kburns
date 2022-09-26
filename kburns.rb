@@ -19,6 +19,7 @@ options.fps = 60
 options.zoom_rate = 0.1
 options.zoom_direction = "random"
 options.scale_mode = :auto
+options.rescale = 10
 options.dump_filter_graph = false
 options.loopable = false
 options.audio = nil
@@ -59,6 +60,9 @@ OptionParser.new do |opts|
   end
   opts.on("--audio=[FILE]", "Use FILE as audio track") do |f|
     options.audio = f
+  end
+  opts.on("-y", "Overwrite output file without asking") do
+    options.y = true
   end
 end.parse!
 
@@ -260,7 +264,7 @@ end
 
 # Run ffmpeg
 cmd = [
-  "ffmpeg", "-hide_banner", "-y", 
+  "ffmpeg", "-hide_banner", *options.y ? ["-y"] : [], 
   *slides.map { |s| ["-i", s[:file]] }.flatten,
   *options.audio ? ["-i", options.audio] : [],
   "-filter_complex", filter_chains.join(";"),
